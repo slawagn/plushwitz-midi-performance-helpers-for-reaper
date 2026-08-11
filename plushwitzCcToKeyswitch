@@ -1,0 +1,64 @@
+desc:plushwitzCcToKeyswitch
+
+slider1:area1_note=12<0,127,1>Area 1 KS note (middle C = 60)
+
+slider2:area2_cc_threshold=30<0,128,1>Area 2 CC Threshold
+slider3:area2_note=14<0,127,1>Area 2 KS note
+
+slider4:area3_cc_threshold=97<0,128,1>Area 3 CC Threshold
+slider5:area3_note=16<0,127,1>Area 3 KS note
+
+slider6:area4_cc_threshold=128<0,128,1>Area 4 CC Threshold
+slider7:area4_note=17<0,127,1>Area 4 KS note
+
+slider8:smoothing_window=10<0, 100, 1>Smoothing window, ms
+slider9:cc_num=102<1, 127, 1>CC number
+slider10:cc_ch=1<1, 16, 1>CC input channel
+slider11:keyswitch_ch=1<1, 16, 1>Keyswitch output channel
+
+@init
+  current_switch = 0;
+  last_switch_time = time_precise();
+
+  function set_keyswitch(channel, note) (
+    current_time = time_precise();
+    delta = current_time - last_switch_time * 1000;
+    
+    current_switch != note || delta > smoothing_window ? (
+      midisend(0, $x80 + channel - 1, current_switch, 64);
+      midisend(0, $x90 + channel - 1, note, 64);
+      last_switch_time = current_time;
+      current_switch = note;
+    );
+  )
+
+
+@block
+  while (midirecv(offset, msg1, msg2, msg3)) (
+    msg1 = $xB0 + cc_ch && msg2 == cc_num ? (
+      ks_num = 1;
+      msg3 >= area2_cc_threshold ? (
+        ks_num = 2;
+      );
+      msg3 >= area3_cc_threshold ? (
+        ks_num = 3;
+      );
+      msg3 >= area4_cc_threshold ? (
+        ks_num = 4;
+      );
+      
+      ks_num == 1 ? (
+        set_keyswitch(keyswitch_ch, area1_note);
+      ) : ks_num == 2 ? (
+        set_keyswitch(keyswitch_ch, area2_note);
+      ): ks_num == 3 ? (
+        set_keyswitch(keyswitch_ch, area3_note);
+      ): ks_num == 4 ? (
+        set_keyswitch(keyswitch_ch, area4_note);
+      );
+    ) :
+    (
+      midisend(offset, msg1, msg2, msg3);
+    );
+  );
+  

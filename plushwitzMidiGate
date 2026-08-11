@@ -1,0 +1,76 @@
+desc:plushwitzMidiGate
+
+slider1:select_ch=2<1, 16, 1>Select channel
+slider2:trigger_ch=1<1, 16, 1>Trigger channel
+slider3:output_ch=1<1, 16, 1>Output channel
+
+slider4:low_trigger_note=36<0, 127, 1>Low trigger note
+slider5:high_trigger_note=36<0, 127, 1>High trigger note
+
+@init
+  select_note_state = freemem;
+  i = 0;
+  while (
+    select_note_state[i] = 0;
+    i += 1;
+    i < 128;
+  );
+  freemem += 128;
+  
+  trigger_note_state = freemem;
+  i = 0;
+  while (
+    trigger_note_state[i] = 0;
+    i += 1;
+    i < 128;
+  );
+
+@block
+  while (midirecv(offset,msg1,msg2,msg3)) (
+    msg1==$x90 + select_ch - 1 && msg3!=0 ? (
+      select_note_state[msg2] = 1
+    );
+    msg1==$x80 + select_ch - 1 || (msg1==$x90 + select_ch - 1 && msg3==0) ? (
+      select_note_state[msg2] = 0;
+      midisend(0, $x90 + output_ch - 1, msg2, 0);
+    );
+     
+    (msg1==$x90 + trigger_ch - 1 && msg3 != 0) && (msg2 >= low_trigger_note && msg2 <= high_trigger_note) ? (
+      trigger_note_state[msg2] = 1;
+
+      i = 0;
+      while (
+        select_note_state[i] > 0 ? (
+          _ = 1;
+          midisend(0, $x90 + output_ch - 1, i, msg3);
+        );
+        i += 1;
+        i < 128;
+      );
+    );
+    (msg1==$x80 + trigger_ch - 1 || (msg1==$x90 + trigger_ch - 1 && msg3 == 0)) && (msg2 >= low_trigger_note && msg2 <= high_trigger_note) ? (
+      trigger_note_state[msg2] = 0;
+    
+      can_safely_send_off = 1;
+      i = low_trigger_note;
+      while (
+        trigger_note_state[i] > 0 ? (
+          can_safely_send_off = 0;
+        );
+        i += 1;
+        i <= high_trigger_note;
+      );
+      
+      can_safely_send_off ? (
+        i = 0;
+        while (
+          select_note_state[i] > 0 ? (
+            _ = 1;
+            midisend(0, $x90 + output_ch - 1, i, 0);
+          );
+          i += 1;
+          i < 128;
+        );
+      );
+    );
+  );
