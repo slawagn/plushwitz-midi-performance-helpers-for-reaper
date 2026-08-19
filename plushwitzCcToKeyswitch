@@ -15,6 +15,7 @@ slider8:smoothing_window=10<0, 100, 1>Smoothing window, ms
 slider9:cc_num=102<1, 127, 1>CC number
 slider10:cc_ch=1<1, 16, 1>CC input channel
 slider11:keyswitch_ch=1<1, 16, 1>Keyswitch output channel
+slider12:passthrough=0<0, 1, 1> CC passthrough
 
 @init
   current_switch = 0;
@@ -35,7 +36,7 @@ slider11:keyswitch_ch=1<1, 16, 1>Keyswitch output channel
 
 @block
   while (midirecv(offset, msg1, msg2, msg3)) (
-    msg1 = $xB0 + cc_ch && msg2 == cc_num ? (
+    msg1 == $xB0 + cc_ch - 1 && msg2 == cc_num ? (
       ks_num = 1;
       msg3 >= area2_cc_threshold ? (
         ks_num = 2;
@@ -55,6 +56,9 @@ slider11:keyswitch_ch=1<1, 16, 1>Keyswitch output channel
         set_keyswitch(keyswitch_ch, area3_note);
       ): ks_num == 4 ? (
         set_keyswitch(keyswitch_ch, area4_note);
+      );
+      passthrough ? (
+        midisend(offset, msg1, msg2, msg3);
       );
     ) :
     (

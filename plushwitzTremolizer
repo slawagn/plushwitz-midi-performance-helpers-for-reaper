@@ -25,6 +25,7 @@ slider3:notes_ch=1<1, 16, 1>Notes channel
         engaged = 1;
       ) : (
         engaged = 0;
+        // TODO: release held notes if any!
       )
     ) :
     msg1 == $x90 && msg3 != 0 ? (
