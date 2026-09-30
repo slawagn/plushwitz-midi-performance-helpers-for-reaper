@@ -16,26 +16,60 @@ slider3:notes_ch=1<1, 16, 1>Notes channel
     i < 128;
   );
   freemem += 128;
+  
+  true_ons = freemem;
+  i = 0;
+  while (
+    true_ons[i] = 0;
+    i += 1;
+    i < 128;
+  );
+  freemem += 128;
+  all_ons = freemem;
+  i = 0;
+  while (
+    all_ons[i] = 0;
+    i += 1;
+    i < 128;
+  );
+  freemem += 128;
 
-
+// TODO: make trigger_cc not useless
 @block
   while (midirecv(offset,msg1,msg2,msg3)) (
     msg1 == $xB0 && msg2 == trigger_cc ? (
       msg3 > 63 ? (
         engaged = 1;
-      ) : (
+      ) :
+      engaged ? (
         engaged = 0;
-        // TODO: release held notes if any!
+        
+        i = 1;
+        while (i < 128) (
+          (all_ons[i] && !true_ons[i]) ? (
+            all_ons[i] = 0;
+            midiSend(offset, $x80, i, 0);
+          );
+          i += 1;
+        );
       )
     ) :
     msg1 == $x90 && msg3 != 0 ? (
       on_velocities[msg2] = msg3;
+      true_ons[msg2] = 1;
+      all_ons[msg2] = 1;
       midiSend(offset, msg1, msg2, msg3);
     ) :
-    engaged && msg1 == $x80 || (msg1 == $x90 && msg3 == 0) ? (
-      midisend(0, $x90, msg2, on_velocities[msg2])
+    engaged && (msg1 == $x80 || msg1 == $x90 && msg3 == 0) ? (
+      true_ons[msg2] = 0;
+      all_ons[msg2] = 1;
+      midisend(0, $x90, msg2, on_velocities[msg2]);
     ) :
     (
+      !engaged && (msg1 == $x80 || msg1 == $x90 && msg3 == 0) ? (
+        true_ons[msg2] = 0;
+        all_ons[msg2] = 0;
+      );
       midisend(offset, msg1, msg2, msg3);
     );
   );
