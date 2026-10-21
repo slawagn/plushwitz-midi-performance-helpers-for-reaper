@@ -35,10 +35,13 @@ slider3:notes_ch=1<1, 16, 1>Notes channel
   );
   freemem += 128;
 
-// TODO: make trigger_cc not useless
 @block
+  target_cc_channel_byte = $xB0 + cc_ch - 1;
+  target_note_on_channel_byte = $x90 + notes_ch - 1;
+  target_note_off_channel_byte = $x80 + notes_ch - 1;
+
   while (midirecv(offset,msg1,msg2,msg3)) (
-    msg1 == $xB0 && msg2 == trigger_cc ? (
+    msg1 == target_cc_channel_byte && msg2 == trigger_cc ? (
       msg3 > 63 ? (
         engaged = 1;
       ) :
@@ -55,19 +58,20 @@ slider3:notes_ch=1<1, 16, 1>Notes channel
         );
       )
     ) :
-    msg1 == $x90 && msg3 != 0 ? (
+    msg1 == target_note_on_channel_byte && msg3 != 0 ? (
       on_velocities[msg2] = msg3;
       true_ons[msg2] = 1;
       all_ons[msg2] = 1;
       midisend(offset, msg1, msg2, msg3);
     ) :
-    engaged && (msg1 == $x80 || (msg1 == $x90 && msg3 == 0)) ? (
+    engaged && (msg1 == target_note_off_channel_byte || (msg1 ==target_note_on_channel_byte && msg3 == 0)) ? (
       true_ons[msg2] = 0;
       all_ons[msg2] = 1;
-      midisend(offset, $x90, msg2, on_velocities[msg2]);
+      midisend(offset, target_note_off_channel_byte, msg2, on_velocities[msg2]);
+      midisend(offset, target_note_on_channel_byte, msg2, on_velocities[msg2]);
     ) :
     (
-      !engaged && (msg1 == $x80 || (msg1 == $x90 && msg3 == 0)) ? (
+      !engaged && (msg1 == target_note_off_channel_byte || (msg1 ==target_note_on_channel_byte && msg3 == 0)) ? (
         true_ons[msg2] = 0;
         all_ons[msg2] = 0;
       );
