@@ -1,0 +1,31 @@
+desc:plushwitzKeyboardMirror
+
+slider1:pivot_note=32<1,127,1>Pivot note
+slider2:use_right=1<0, 1, 1>Use left/right part
+slider3:notes_ch=1<1, 16, 1>Notes channel
+
+
+@block
+  target_note_on_channel_byte = $x90 + notes_ch - 1;
+  target_note_off_channel_byte = $x80 + notes_ch - 1;
+
+  while (midirecv(offset,msg1,msg2,msg3)) (
+    msg1 == target_note_on_channel_byte || msg1 == target_note_off_channel_byte ? (
+      note_original = msg2;
+
+      use_right && (note_original < pivot_note) ? (
+        note_transformed = pivot_note + (pivot_note - note_original);
+        midisend(offset, msg1, note_transformed, msg3);
+      ):
+      !use_right && (note_original > pivot_note) ? (
+        note_transformed = pivot_note - (note_original - pivot_note);
+        midisend(offset, msg1, note_transformed, msg3);
+      ):
+      (
+        midisend(offset, msg1, msg2, msg3);
+      );
+    ) :
+    (
+      midisend(offset, msg1, msg2, msg3);
+    );
+  );
