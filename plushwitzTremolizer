@@ -64,14 +64,20 @@ slider3:notes_ch=1<1, 16, 1>Notes channel
       all_ons[msg2] = 1;
       midisend(offset, msg1, msg2, msg3);
     ) :
-    engaged && (msg1 == target_note_off_channel_byte || (msg1 ==target_note_on_channel_byte && msg3 == 0)) ? (
+    engaged && (msg1 == target_note_off_channel_byte) ? (
+      true_ons[msg2] = 0;
+      all_ons[msg2] = 1;
+      midisend(offset, target_note_off_channel_byte, msg2, msg3);
+      midisend(offset, target_note_on_channel_byte, msg2, msg3);
+    ) :
+    engaged & (msg1 == target_note_on_channel_byte && msg3 == 0) ? (
       true_ons[msg2] = 0;
       all_ons[msg2] = 1;
       midisend(offset, target_note_off_channel_byte, msg2, on_velocities[msg2]);
       midisend(offset, target_note_on_channel_byte, msg2, on_velocities[msg2]);
     ) :
     (
-      !engaged && (msg1 == target_note_off_channel_byte || (msg1 ==target_note_on_channel_byte && msg3 == 0)) ? (
+      !engaged && (msg1 == target_note_off_channel_byte || (msg1 == target_note_on_channel_byte && msg3 == 0)) ? (
         true_ons[msg2] = 0;
         all_ons[msg2] = 0;
       );
