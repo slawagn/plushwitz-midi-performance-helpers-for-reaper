@@ -1,0 +1,21 @@
+desc:plushwitzBender
+
+@block
+  while (midirecv(offset,msg1,msg2,msg3)) (
+    msg1 >= $xE0 && msg1 <=$xEF ? (
+      raw_bend = msg3 * 128 + msg2;
+    
+      input = (raw_bend - 8192) / 8192; 
+      sign = input < 0 ? -1 : 1;
+      x = abs(input);
+      y = (4 * x * x * x) - (6 * x * x) + (3 * x);
+      output_bend = y * sign * 8192 + 8192;
+      
+      msb = output_bend / 128;
+      lsb = output_bend % 128;
+      
+      midisend(offset, msg1, lsb, msb);
+    ) : (
+      midisend(offset, msg1, msg2, msg3);
+    );
+  );
